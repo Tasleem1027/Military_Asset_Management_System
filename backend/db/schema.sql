@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS bases(id BIGSERIAL PRIMARY KEY,name TEXT UNIQUE NOT NULL,location TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS users(id BIGSERIAL PRIMARY KEY,full_name TEXT NOT NULL,email TEXT UNIQUE NOT NULL,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('Admin','Base Commander','Logistics Officer')),base_id BIGINT REFERENCES bases(id));
+CREATE TABLE IF NOT EXISTS assets(id BIGSERIAL PRIMARY KEY,asset_code TEXT UNIQUE NOT NULL,name TEXT NOT NULL,equipment_type TEXT NOT NULL,quantity INTEGER NOT NULL CHECK(quantity>=0),base_id BIGINT NOT NULL REFERENCES bases(id),status TEXT NOT NULL DEFAULT 'Available',notes TEXT,created_at TIMESTAMPTZ DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS purchases(id BIGSERIAL PRIMARY KEY,asset_id BIGINT REFERENCES assets(id),base_id BIGINT REFERENCES bases(id),quantity INTEGER NOT NULL CHECK(quantity>0),unit_cost NUMERIC(12,2) DEFAULT 0,supplier TEXT,purchase_date DATE DEFAULT CURRENT_DATE,recorded_by BIGINT REFERENCES users(id),created_at TIMESTAMPTZ DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS transfers(id BIGSERIAL PRIMARY KEY,asset_id BIGINT REFERENCES assets(id),from_base_id BIGINT REFERENCES bases(id),to_base_id BIGINT REFERENCES bases(id),quantity INTEGER NOT NULL CHECK(quantity>0),transfer_date TIMESTAMPTZ DEFAULT NOW(),notes TEXT,recorded_by BIGINT REFERENCES users(id),CHECK(from_base_id<>to_base_id));
+CREATE TABLE IF NOT EXISTS assignments(id BIGSERIAL PRIMARY KEY,asset_id BIGINT REFERENCES assets(id),base_id BIGINT REFERENCES bases(id),personnel_name TEXT NOT NULL,quantity INTEGER NOT NULL CHECK(quantity>0),assignment_date TIMESTAMPTZ DEFAULT NOW(),status TEXT DEFAULT 'Assigned',notes TEXT,recorded_by BIGINT REFERENCES users(id));
+CREATE TABLE IF NOT EXISTS audit_logs(id BIGSERIAL PRIMARY KEY,user_id BIGINT REFERENCES users(id),action TEXT NOT NULL,entity_type TEXT NOT NULL,entity_id BIGINT,details JSONB DEFAULT '{}'::jsonb,created_at TIMESTAMPTZ DEFAULT NOW());
+CREATE INDEX IF NOT EXISTS assets_base_idx ON assets(base_id);
+CREATE INDEX IF NOT EXISTS assets_type_idx ON assets(equipment_type);
+CREATE INDEX IF NOT EXISTS purchases_date_idx ON purchases(purchase_date);
+CREATE INDEX IF NOT EXISTS transfers_date_idx ON transfers(transfer_date);
